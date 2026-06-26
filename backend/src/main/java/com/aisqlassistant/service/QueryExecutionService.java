@@ -9,76 +9,72 @@ import java.util.*;
 public class QueryExecutionService {
 
     public Map<String, Object> executeQuery(
-            String url,
-            String username,
-            String password,
-            String sql) {
+        String url,
+        String username,
+        String password,
+        String sql) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+    Map<String, Object> response = new LinkedHashMap<>();
 
-        long start = System.currentTimeMillis();
+    long startTime = System.currentTimeMillis();
 
-        try (Connection connection =
-                     DriverManager.getConnection(url, username, password);
+    try (Connection connection =
+                 DriverManager.getConnection(url, username, password);
 
-             Statement statement = connection.createStatement()) {
+         Statement statement = connection.createStatement()) {
 
-            boolean hasResult = statement.execute(sql);
+        boolean hasResult = statement.execute(sql);
 
-            if (hasResult) {
+        if (hasResult) {
 
-                ResultSet rs = statement.getResultSet();
-                ResultSetMetaData meta = rs.getMetaData();
+            ResultSet rs = statement.getResultSet();
+            ResultSetMetaData meta = rs.getMetaData();
 
-                List<Map<String, Object>> rows = new ArrayList<>();
+            List<Map<String, Object>> rows = new ArrayList<>();
 
-                while (rs.next()) {
+            while (rs.next()) {
 
-                    Map<String, Object> row = new LinkedHashMap<>();
+                Map<String, Object> row = new LinkedHashMap<>();
 
-                    for (int i = 1; i <= meta.getColumnCount(); i++) {
+                for (int i = 1; i <= meta.getColumnCount(); i++) {
 
-                        row.put(
-                                meta.getColumnName(i),
-                                rs.getObject(i)
-                        );
-
-                    }
-
-                    rows.add(row);
+                    row.put(meta.getColumnLabel(i), rs.getObject(i));
 
                 }
 
-                response.put("type", "SELECT");
-                response.put("rows", rows);
-
-            } else {
-
-                response.put(
-                        "affectedRows",
-                        statement.getUpdateCount()
-                );
-
-                response.put("type", "UPDATE");
+                rows.add(row);
 
             }
 
             response.put("success", true);
+            response.put("queryType", "SELECT");
+            response.put("rowCount", rows.size());
+            response.put("rows", rows);
 
-        } catch (Exception e) {
+        } else {
 
-            response.put("success", false);
-            response.put("error", e.getMessage());
+            int affected = statement.getUpdateCount();
+
+            response.put("success", true);
+            response.put("queryType", "UPDATE");
+            response.put("affectedRows", affected);
 
         }
 
-        response.put(
-                "executionTime",
-                System.currentTimeMillis() - start + " ms"
-        );
+    } catch (SQLException e) {
 
-        return response;
+        response.put("success", false);
+        response.put("error", e.getMessage());
 
     }
+
+    response.put(
+            "executionTimeMs",
+            System.currentTimeMillis() - startTime
+    );
+
+    return response;
+
+}
 
 }

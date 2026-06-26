@@ -1,91 +1,167 @@
 package com.aisqlassistant.service;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.aisqlassistant.entity.QueryHistory;
+
 
 @Service
+@RequiredArgsConstructor
 public class AIQueryService {
 
-    public Map<String, Object> generateSql(String prompt) {
+    private final GeminiService geminiService;
+    private final SchemaReaderService schemaReaderService;
+    private final QueryHistoryService queryHistoryService;
+    // Current method (existing controller ke liye)
+    public String generateSql(String prompt) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+    String finalPrompt = """
+You are an expert SQL developer.
 
-        response.put("prompt", prompt);
-        response.put("sql",
-                "-- AI Generated SQL\nSELECT * FROM employees;");
-        response.put("status", "SUCCESS");
+Convert the following natural language into ONLY executable SQL.
 
-        return response;
+Rules:
+- Return only SQL.
+- Do not explain.
+- Do not use markdown.
+- Do not wrap in ```sql.
+
+User Request:
+""" + prompt;
+
+    String sql = geminiService.askGemini(finalPrompt);
+
+    QueryHistory history = QueryHistory.builder()
+            .userPrompt(prompt)
+            .generatedQuery(sql)
+            .databaseType("Unknown")
+            .queryType("AI_GENERATED")
+            .executionStatus("GENERATED")
+            .build();
+
+    queryHistoryService.save(history);
+
+    return sql;
+}
+
+    // Future method (Schema-aware SQL generation)
+    public String generateSql(
+            String prompt,
+            String url,
+            String username,
+            String password) {
+
+        String schema = schemaReaderService.readSchema(
+                url,
+                username,
+                password
+        );
+
+        String finalPrompt = """
+You are an expert SQL developer.
+
+Database Schema:
+
+""" + schema + """
+
+Generate ONLY executable SQL.
+
+Rules:
+- Return only SQL.
+- No explanation.
+- No markdown.
+
+User Request:
+""" + prompt;
+
+        String sql = geminiService.askGemini(finalPrompt);
+
+QueryHistory history = QueryHistory.builder()
+        .userPrompt(prompt)
+        .generatedQuery(sql)
+        .databaseType("Custom Database")
+        .queryType("AI_GENERATED")
+        .executionStatus("GENERATED")
+        .build();
+
+queryHistoryService.save(history);
+
+return sql;
     }
 
-    public Map<String, Object> formatSql(String sql) {
+    public String explainQuery(String sql) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+        return geminiService.askGemini("""
+Explain the following SQL query in simple English.
 
-        response.put("formattedQuery", sql.toUpperCase());
+SQL:
+""" + sql);
 
-        return response;
     }
 
-    public Map<String, Object> calculateDifficulty(String sql) {
+    public String optimizeQuery(String sql) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+        return geminiService.askGemini("""
+Optimize the following SQL query.
 
-        response.put("difficulty", "MEDIUM");
-        response.put("score", 55);
+Return ONLY optimized SQL.
 
-        return response;
+SQL:
+""" + sql);
+
     }
 
-    public Map<String, Object> detectDangerousQuery(String sql) {
+    public String autoFixQuery(String sql) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+        return geminiService.askGemini("""
+Fix the syntax errors in the following SQL query.
 
-        boolean danger = sql.toUpperCase().contains("DROP")
-                || sql.toUpperCase().contains("DELETE");
+Return ONLY corrected SQL.
 
-        response.put("dangerous", danger);
+SQL:
+""" + sql);
 
-        if (danger) {
-            response.put("risk", "HIGH");
-        } else {
-            response.put("risk", "SAFE");
-        }
-
-        return response;
     }
 
-    public Map<String, Object> optimizeQuery(String sql) {
+    public String formatSql(String sql) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+        return geminiService.askGemini("""
+Format the following SQL query properly.
 
-        response.put("optimizedQuery", sql);
-        response.put("message",
-                "Optimization suggestions generated.");
+Return ONLY formatted SQL.
 
-        return response;
+SQL:
+""" + sql);
+
     }
 
-    public Map<String, Object> explainQuery(String sql) {
+    public String detectDangerousQuery(String sql) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+        return geminiService.askGemini("""
+Determine whether the following SQL query is dangerous.
 
-        response.put("explanation",
-                "This SQL query retrieves records from the selected table.");
+Respond exactly like this:
 
-        return response;
+Safe: YES/NO
+Reason: <reason>
+
+SQL:
+""" + sql);
+
     }
 
-    public Map<String, Object> autoFixQuery(String sql) {
+    public String calculateDifficulty(String sql) {
 
-        Map<String, Object> response = new LinkedHashMap<>();
+        return geminiService.askGemini("""
+Rate the SQL query difficulty.
 
-        response.put("fixedQuery", sql);
-        response.put("status", "FIXED");
+Respond exactly like this:
 
-        return response;
+Difficulty: Easy/Medium/Hard
+Reason: <reason>
+
+SQL:
+""" + sql);
+
     }
-
 }

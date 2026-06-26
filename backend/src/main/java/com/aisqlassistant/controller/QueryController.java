@@ -18,16 +18,24 @@ public class QueryController {
     private final AIQueryService aiQueryService;
     private final QueryExecutionService queryExecutionService;
 
-    @PostMapping("/generate")
-    public ResponseEntity<?> generateQuery(
-            @RequestBody Map<String, String> request) {
+   @PostMapping("/generate")
+public ResponseEntity<?> generateQuery(
+        @RequestBody QueryRequest request) {
 
-        String prompt = request.get("prompt");
+    return ResponseEntity.ok(
 
-        return ResponseEntity.ok(
-                aiQueryService.generateSql(prompt)
-        );
-    }
+            aiQueryService.generateSql(
+
+                    request.getPrompt(),
+                    request.getUrl(),
+                    request.getUsername(),
+                    request.getPassword()
+
+            )
+
+    );
+
+}
 
     @PostMapping("/format")
     public ResponseEntity<?> formatQuery(
