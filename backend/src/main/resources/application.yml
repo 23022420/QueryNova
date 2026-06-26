@@ -1,0 +1,51 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: QueryNova
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/querynova
+    username: khushisharma
+    password: 
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+
+jwt:
+  secret: 8YhK2Lm9NpQ4RsT7UvWxZaBcDeFgHiJkLmNoPqRsTuVxYz123456789
+  expiration: 86400000
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
+
+ai:
+  provider: gemini
+  api-key: YOUR_GEMINI_API_KEY
+  model: gemini-2.5-flash
+
+app:
+  export-path: exports/
+  audit-log: true
